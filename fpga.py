@@ -21,6 +21,7 @@
 
 from Queue import Queue, Empty, Full
 from jtag import JTAG
+import subprocess
 import time
 
 class Object(object):
@@ -344,7 +345,19 @@ class FPGA:
 		
 		start_time = time.time()
 		
-		midstate = hexstr2array(job.midstate)
+		# blakecoin
+		midstatehex = ''
+		proc = subprocess.Popen(['./midstate',job.data],stdout=subprocess.PIPE)	# OK for linux and windows
+		while True:
+			msline = proc.stdout.readline()
+			if (msline != ''):
+				midstatehex = msline.rstrip()
+			else:
+				break
+
+		print "midstatehex=", midstatehex		# DEBUG
+		# midstate = hexstr2array(job.midstate)
+		midstate = hexstr2array(midstatehex)
 		data = hexstr2array(job.data)[64:64+12]
 		data = midstate + data
 
