@@ -23,6 +23,10 @@ from Queue import Queue, Empty, Full
 from jtag import JTAG
 import subprocess
 import time
+import struct
+from ctypes import *
+from binascii import hexlify, unhexlify
+from blake8 import BLAKE as BLAKE
 
 class Object(object):
 	pass
@@ -345,19 +349,28 @@ class FPGA:
 		
 		start_time = time.time()
 		
-		# blakecoin
-		midstatehex = ''
-		proc = subprocess.Popen(['./midstate',job.data],stdout=subprocess.PIPE)	# OK for linux and windows
-		while True:
-			msline = proc.stdout.readline()
-			if (msline != ''):
-				midstatehex = msline.rstrip()
-			else:
-				break
+		# blakecoin DEBUG
+		#midstatehex = ''
+		#proc = subprocess.Popen(['./midstate',job.data],stdout=subprocess.PIPE)	# OK for linux and windows
+		#while True:
+		#	msline = proc.stdout.readline()
+		#	if (msline != ''):
+		#		midstatehex = msline.rstrip()
+		#	else:
+		#		break
 
-		print "midstatehex=", midstatehex		# DEBUG
-		# midstate = hexstr2array(job.midstate)
-		midstate = hexstr2array(midstatehex)
+		#print "\nmidstatehex=", midstatehex
+		#midstate1 = hexstr2array(midstatehex)
+		#print (midstate1)
+
+		midstate_blake8 = BLAKE(256).midstate(struct.pack("<16I", *struct.unpack(">16I", job.data.decode('hex')[:64])))
+		# print('\nmidstate_blake8 %s' % (hexlify(midstate_blake8).decode()))
+		midstate_blake8_swap = struct.pack("<8I", *struct.unpack(">8I", midstate_blake8))
+		# print('\nmidswap_blake8  %s' % (hexlify(midstate_blake8_swap).decode()))
+
+		# midstate = hexstr2array(job.midstate)		// ORIGINAL
+		midstate = hexstr2array(hexlify(midstate_blake8_swap).decode())
+		# print (midstate)
 		data = hexstr2array(job.data)[64:64+12]
 		data = midstate + data
 

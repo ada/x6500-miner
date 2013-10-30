@@ -34,6 +34,9 @@ from Queue import Queue, Empty, Full
 from struct import pack, unpack
 from hashlib import sha256
 import os
+from ctypes import *
+from binascii import hexlify, unhexlify
+from blake8 import BLAKE as BLAKE
 
 BASE_TARGET = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000'.decode('hex')
 
@@ -79,24 +82,27 @@ def checkNonce(gold):
 	staticDataUnpacked = unpack('<' + 'I'*19, gold.job.data.decode('hex')[:76])
 	staticData = pack('>' + 'I'*19, *staticDataUnpacked)
 	hashInput = pack('>76sI', staticData, gold.nonce)
-	# hashOutput = sha256(sha256(hashInput).digest()).digest()
+	# hashOutput = sha256(sha256(hashInput).digest()).digest()	// ORIGINAL
+	hashOutput = BLAKE(256).digest(hashInput)
 
-	# blakecoin: This is a bit beyond my python skills, so just report the hash for now
-	gnhex = "{0:08x}".format(gold.nonce)
-	gnhexrev = gnhex[6:8]+gnhex[4:6]+gnhex[2:4]+gnhex[0:2]
-	# hrnonce = gnhex	# TODO check which order is needed
-	hrnonce = gnhexrev
-	print "hrnonce=",hrnonce	# DEBUG
-	chkdata = gold.job.data[:152] + hrnonce + gold.job.data[160:]
-	if (os.name == "nt"):
-		os.system ("echo checkblake " + chkdata + ">>logmine-ms.log")		# Log file is runnable (rename .BAT)
-		os.system ("checkblake " + chkdata)
-	else:
-		os.system ("echo ./checkblake " + chkdata + ">>logmine-ms.log")	# Log file is runnable as a shell script
-		os.system ("./checkblake " + chkdata)
+	# hash_str = hexlify(hashOutput).decode()
+	# print('hash_str %s' % hash_str)
+
+	# blakecoin DEBUG
+	#gnhex = "{0:08x}".format(gold.nonce)
+	#gnhexrev = gnhex[6:8]+gnhex[4:6]+gnhex[2:4]+gnhex[0:2]
+	#hrnonce = gnhexrev
+	#print "\nhrnonce=",hrnonce	# DEBUG
+	#chkdata = gold.job.data[:152] + hrnonce + gold.job.data[160:]
+	#if (os.name == "nt"):
+	#	os.system ("echo checkblake " + chkdata + ">>logmine-ms.log")		# Log file is runnable (rename .BAT)
+	#	os.system ("checkblake " + chkdata)
+	#else:
+	#	os.system ("echo ./checkblake " + chkdata + ">>logmine-ms.log")	# Log file is runnable as a shell script
+	#	os.system ("./checkblake " + chkdata)
 	
-	return True	# Just assume its OK
-	
+	# return True	# Just assume its OK
+		
 	if checkTarget(BASE_TARGET, hashOutput):
 		logger.reportValid(gold.fpgaID)
 	else:
